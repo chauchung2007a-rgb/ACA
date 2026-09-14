@@ -227,7 +227,7 @@ body.dark .app{
 ===================================================== */
 .brand{
   text-align:center;
-  padding:10px 0 20px;
+  padding:6px 0 10px;
 }
 
 .brandIcon{
@@ -242,12 +242,13 @@ body.dark .app{
 }
 
 .brand h1{
-  margin:8px 0 4px;
-  font-size:28px;
+  margin:6px 0 2px;
+  font-size:20px;
 }
 
 .brand p{
   margin:0;
+  font-size:13px;
 }
 
 .signupField{
@@ -2831,7 +2832,7 @@ body.dark .modalBox{
       <h1 id="signupBrandTitle">𝑪𝒉𝒂𝒕𝒔</h1>
       <p id="signupSubtitle" class="muted">Create your account</p>
     </div>
-    <div id="tempFirebaseDiagBanner" style="background:#fff3cd; border:2px dashed #cc9900; border-radius:8px; padding:8px 10px; margin-bottom:12px; font-size:12px; line-height:1.5; color:#5a4500; font-family:monospace;"></div>
+    <div id="tempFirebaseDiagBanner" style="display:none; background:#fff3cd; border:2px dashed #cc9900; border-radius:8px; padding:8px 10px; margin-bottom:12px; font-size:12px; line-height:1.5; color:#5a4500; font-family:monospace;"></div>
     <div id="signupContent"></div>
   </div>
 </div>
@@ -3014,8 +3015,15 @@ window.__otpDiag = {
   currentStep: null, step3BranchRan: false, otpBoxExistsAfterInsert: null,
   renderOtpCalled: false, otpBoxExistsAtRenderTime: null,
   step1ButtonClicked: false, step2FunctionCalled: false,
-  step1EmailReceived: null, step1ValidationResult: null
+  step1EmailReceived: null, step1ValidationResult: null,
+  forgotLinkClicked: false, openForgotPasswordCalled: false,
+  renderSignupCalledForReset: false, forgotError: null
 };
+
+/* TEMPORARY DIAGNOSTIC — REMOVE LATER
+   Update this string by hand every time this file is edited,
+   so the on-device banner can be compared against it. */
+window.__buildTimestamp = "2026-09-14 09:40:24 +07:00";
 
 window.addEventListener("error", function(e){
   if(e && e.target && e.target.tagName === "SCRIPT" && e.target.src && e.target.src.indexOf("firebasejs") !== -1){
@@ -3038,6 +3046,7 @@ function updateFirebaseDiagBanner(){
   var boxAtRenderText = (diag.otpBoxExistsAtRenderTime === null) ? "N/A" : (diag.otpBoxExistsAtRenderTime ? "✅ Yes" : "❌ No");
   el.innerHTML =
     "⚠️ TEMPORARY DIAGNOSTIC (remove later)<br>" +
+    "<b>BUILD TIMESTAMP: " + (window.__buildTimestamp || "N/A") + "</b><br>" +
     "Firebase module: " + moduleStatus + "<br>" +
     "window.otpCreateCustomerDoc: " + fnStatus + "<br>" +
     "Error: " + errorText + "<br>" +
@@ -3051,7 +3060,17 @@ function updateFirebaseDiagBanner(){
     "First Next button clicked: " + (diag.step1ButtonClicked ? "✅ Yes" : "❌ No") + "<br>" +
     "goToSignupStep2() called: " + (diag.step2FunctionCalled ? "✅ Yes" : "❌ No") + "<br>" +
     "Email value received: " + (diag.step1EmailReceived === null ? "N/A" : "\"" + diag.step1EmailReceived + "\"") + "<br>" +
-    "Validation result: " + (diag.step1ValidationResult || "N/A");
+    "Validation result: " + (diag.step1ValidationResult || "N/A") + "<br>" +
+    "--- Forgot Password link ---<br>" +
+    "Forgot Password link clicked: " + (diag.forgotLinkClicked ? "✅ Yes" : "❌ No") + "<br>" +
+    "openForgotPassword() called: " + (diag.openForgotPasswordCalled ? "✅ Yes" : "❌ No") + "<br>" +
+    "forgotPasswordMode: " + (typeof forgotPasswordMode !== "undefined" ? String(forgotPasswordMode) : "N/A") + "<br>" +
+    "renderSignup() called for reset: " + (diag.renderSignupCalledForReset ? "✅ Yes" : "❌ No") + "<br>" +
+    "Error: " + (diag.forgotError || "None");
+
+  /* Diagnostic banner is hidden from the UI — mirror the same info to the
+     browser console so debugging is still possible without cluttering Signup. */
+  console.log("[DIAG] Build:", window.__buildTimestamp, JSON.stringify(diag));
 }
 
 /* =====================================================
@@ -3207,7 +3226,7 @@ function renderSignup(){
         <input id="loginPassword" class="input signupInput" type="password" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter'){finishLogin();}">
       </div>
       <button class="primary" onclick="finishLogin()">➜ ចូល</button>
-      <p class="muted" style="text-align:center; margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="openForgotPassword()">ភ្លេចពាក្យសម្ងាត់?</p>
+      <p class="muted" style="text-align:center; margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="window.__otpDiag.forgotLinkClicked=true; updateFirebaseDiagBanner(); openForgotPassword();">ភ្លេចពាក្យសម្ងាត់?</p>
     `;
     return;
   }
@@ -3504,9 +3523,22 @@ function goBackToPasswordStep(){
    same accepted limitation as Signup Step 3.
 ===================================================== */
 function openForgotPassword(){
-  forgotPasswordMode = true;
-  forgotPasswordState = { step: 1, email: "" };
-  renderSignup();
+  /* TEMPORARY DIAGNOSTIC — REMOVE LATER */
+  try{
+    window.__otpDiag.openForgotPasswordCalled = true;
+    updateFirebaseDiagBanner();
+
+    forgotPasswordMode = true;
+    forgotPasswordState = { step: 1, email: "" };
+
+    window.__otpDiag.renderSignupCalledForReset = true;
+    updateFirebaseDiagBanner();
+
+    renderSignup();
+  }catch(error){
+    window.__otpDiag.forgotError = error && error.message ? error.message : String(error);
+    updateFirebaseDiagBanner();
+  }
 }
 
 function backToLoginFromReset(){
